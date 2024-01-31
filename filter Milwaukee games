@@ -1,0 +1,16 @@
+import pandas as pd
+
+# Laad de dataset in een DataFrame
+df = pd.read_excel('games_details.csv')
+
+# Filter de dataset om alleen de wedstrijden van 'Milwaukee' te behouden en selecteer relevante kolommen
+df_milwaukee = df[df['TEAM_ABBREVIATION'] == 'MIL'][["GAME_ID"]]
+
+# Identificeer unieke GAME_ID's van wedstrijden waarin Milwaukee heeft gespeeld
+milwaukee_game_ids = df_milwaukee['GAME_ID'].unique()
+
+# Filter de dataset om de wedstrijden van de tegenstanders op te nemen
+df_tegenstanders = df[df['GAME_ID'].isin(milwaukee_game_ids)]
+
+# Sla de resulterende DataFrame op in een nieuw Excel-bestand
+df_tegenstanders.to_excel('wedstrijden_Milwaukee_en_tegenstanders.xlsx', index=False)
