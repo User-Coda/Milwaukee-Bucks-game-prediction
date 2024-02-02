@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Laad de dataset in een DataFrame
-df = pd.read_excel('games_details.csv')
+df = pd.read_excel('games_details.xlsx')
 
 # Filter de dataset om alleen de wedstrijden van 'Milwaukee' te behouden en selecteer relevante kolommen
 df_milwaukee = df[df['TEAM_ABBREVIATION'] == 'MIL'][["GAME_ID"]]
