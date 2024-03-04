@@ -1,1 +1,41 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+# Laad de dataset
+df = pd.read_excel('NBA Games.xlsx')
+
+# Feature engineering en data voorbereiding
+
+# Creëer labels op basis van het verschil in scores tussen Team A en Team B
+
+# Split de data in trainings- en testssets
+train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
+
+# Kies features (X) en labels (y) voor training
+X_train = train_data[['FGM',	'FGA',	'FG_PCT',	'FG3M',	'FG3A',	'FG3_PCT',	'FTM',	'FTA',	'FT_PCT',	'OREB',	'DREB',	'REB',	'AST',	'STL',	'BLK',	'TO',	'PF', 'PTS',	'PLUS_MINUS'
+]]
+y_train = train_data['score_difference']
+
+# Kies features (X) en labels (y) voor testing
+X_test = test_data[['feature1', 'feature2', ...]]
+y_test = test_data['score_difference']
+
+# Initialiseer het regressiemodel (bijv. Random Forest Regressor)
+model = RandomForestRegressor()
+
+# Train het model
+model.fit(X_train, y_train)
+
+# Voorspellingen doen voor de testsset
+predictions = model.predict(X_test)
+
+# Evalueer het model
+mse = mean_squared_error(y_test, predictions)
+print(f'Mean Squared Error: {mse}')
+
+# Voorspellingen doen voor toekomstige games
+future_games_features = ...  # features voor toekomstige games
+future_predictions = model.predict(future_games_features)
 
