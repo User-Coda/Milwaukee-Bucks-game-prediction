@@ -8,7 +8,7 @@ df = pd.read_excel('NBA Games.xlsx')
 
 # Feature engineering en data voorbereiding
 
-df['Label'] = df.apply(lambda row: 1 if row['Team_A_Score'] > row['Team_B_Score'] else 0, axis=1)
+df['Label'] = df.apply(lambda row: 1 if row['MIL_Score'] > row['OPP_Score'] else 0, axis=1)
 
 # Split de data in trainings- en testssets
 train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
