@@ -8,7 +8,7 @@ df = pd.read_excel('NBA Games.xlsx')
 
 # Feature engineering en data voorbereiding
 
-# Creëer labels op basis van het verschil in scores tussen Team A en Team B
+df['Label'] = df.apply(lambda row: 1 if row['Team_A_Score'] > row['Team_B_Score'] else 0, axis=1)
 
 # Split de data in trainings- en testssets
 train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
@@ -19,7 +19,7 @@ X_train = train_data[['FGM',	'FGA',	'FG_PCT',	'FG3M',	'FG3A',	'FG3_PCT',	'FTM',	
 y_train = train_data['score_difference']
 
 # Kies features (X) en labels (y) voor testing
-X_test = test_data[['feature1', 'feature2', ...]]
+X_test = test_data[['FGM',	'FGA',	'FG_PCT',	'FG3M',	'FG3A',	'FG3_PCT',	'FTM',	'FTA',	'FT_PCT',	'OREB',	'DREB',	'REB',	'AST',	'STL',	'BLK',	'TO',	'PF', 'PTS',	'PLUS_MINUS']]
 y_test = test_data['score_difference']
 
 # Initialiseer het regressiemodel (bijv. Random Forest Regressor)
