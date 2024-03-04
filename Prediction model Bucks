@@ -7,8 +7,20 @@ from sklearn.metrics import mean_squared_error
 df = pd.read_excel('NBA Games.xlsx')
 
 # Feature engineering en data voorbereiding
+# Filter data for Milwaukee (MIL) team
+milwaukee_data = df[df['TEAM_ABBREVIATION'] == 'MIL']
 
-df['Label'] = df.apply(lambda row: 1 if row['MIL_Score'] > row['OPP_Score'] else 0, axis=1)
+# Group by 'GAME_ID' and sum the points for Milwaukee
+milwaukee_scores = milwaukee_data.groupby('GAME_ID')['PTS'].sum().reset_index()
+
+# Merge the total Milwaukee scores back to the original dataframe
+df = pd.merge(df, milwaukee_scores, how='left', on='GAME_ID', suffixes=('', '_MIL'))
+
+# Assuming 'PTS' represents the total points scored for the opponent
+df['OPP_Score'] = df['PTS'] - df['PTS_MIL']
+
+# Add a label column based on the comparison of scores
+df['Label'] = df.apply(lambda row: 1 if row['PTS_MIL'] > row['OPP_Score'] else 0, axis=1)
 
 # Split de data in trainings- en testssets
 train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
