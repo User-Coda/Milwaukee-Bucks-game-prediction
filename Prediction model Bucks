@@ -3,12 +3,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
-# Laad de dataset
-df = pd.read_excel('NBA Games.xlsx')
+# Load the dataset
+df = pd.read_excel('Bucks Games.xlsx')
 
-# Feature engineering en data voorbereiding
+# Feature engineering and data preparation
 # Filter data for Milwaukee (MIL) team
-milwaukee_data = df[df['TEAM_ABBREVIATION'] == 'MIL']
+milwaukee_data = df[df['TEAM_ABBREVIATION'].str.strip() == 'MIL']
 
 # Group by 'GAME_ID' and sum the points for Milwaukee
 milwaukee_scores = milwaukee_data.groupby('GAME_ID')['PTS'].sum().reset_index()
@@ -22,32 +22,47 @@ df['OPP_Score'] = df['PTS'] - df['PTS_MIL']
 # Add a label column based on the comparison of scores
 df['Label'] = df.apply(lambda row: 1 if row['PTS_MIL'] > row['OPP_Score'] else 0, axis=1)
 
-# Split de data in trainings- en testssets
+# Split the data into training and test sets
 train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
 
-# Kies features (X) en labels (y) voor training
-X_train = train_data[['FGM',	'FGA',	'FG_PCT',	'FG3M',	'FG3A',	'FG3_PCT',	'FTM',	'FTA',	'FT_PCT',	'OREB',	'DREB',	'REB',	'AST',	'STL',	'BLK',	'TO',	'PF', 'PTS',	'PLUS_MINUS'
-]]
-y_train = train_data['score_difference']
+train_data = train_data.dropna(subset=['PLUS_MINUS'])
+test_data = test_data.dropna(subset=['PLUS_MINUS'])  # Add this line to remove NaN values in 'PLUS_MINUS' from the test set
 
-# Kies features (X) en labels (y) voor testing
-X_test = test_data[['FGM',	'FGA',	'FG_PCT',	'FG3M',	'FG3A',	'FG3_PCT',	'FTM',	'FTA',	'FT_PCT',	'OREB',	'DREB',	'REB',	'AST',	'STL',	'BLK',	'TO',	'PF', 'PTS',	'PLUS_MINUS']]
-y_test = test_data['score_difference']
+# One-hot encoding for categorical columns
+df = pd.get_dummies(df, columns=['TEAM_ABBREVIATION'])
 
-# Initialiseer het regressiemodel (bijv. Random Forest Regressor)
+# Choose features (X) and labels (y) for training
+X_train = train_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
+y_train = train_data['PLUS_MINUS']
+
+# Choose features (X) and labels (y) for testing
+X_test = test_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
+y_test = test_data['PLUS_MINUS']
+
+
+# Initialize the regression model (e.g., Random Forest Regressor)
 model = RandomForestRegressor()
 
-# Train het model
+# Train the model
 model.fit(X_train, y_train)
 
-# Voorspellingen doen voor de testsset
+# Predictions for the test set
 predictions = model.predict(X_test)
 
-# Evalueer het model
+# Evaluate the model
 mse = mean_squared_error(y_test, predictions)
 print(f'Mean Squared Error: {mse}')
 
-# Voorspellingen doen voor toekomstige games
-future_games_features = ...  # features voor toekomstige games
-future_predictions = model.predict(future_games_features)
+# Ensure that future_games_features is a DataFrame with appropriate features
+# Drop rows with NaN values in future_games_features
+future_games_features = future_games_features.dropna()
+
+# Ensure valid data types in future_games_features
+future_games_features = future_games_features.astype(float)  # Convert all columns to float
+
+# Use valid features consistent with the trained model
+valid_features = future_games_features[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
+
+# Predictions for future games
+future_predictions = model.predict(valid_features)
 
