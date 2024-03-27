@@ -26,14 +26,26 @@ historical_data['OPP_Score'] = historical_data['PTS'] - historical_data['PTS_MIL
 # Step 3: Split the data into training and testing sets
 train_data, test_data = train_test_split(historical_data, test_size=0.2, random_state=42)
 
+# Verwijder rijen met NaN-waarden uit de trainingsgegevens
+train_data = train_data.dropna(subset=['PLUS_MINUS'])
+
 # Step 4: Choose features (X) and labels (y) for training and testing
 X_train = train_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 
                       'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
 y_train = train_data['PLUS_MINUS']
 
+test_data = test_data.dropna(subset=['PLUS_MINUS'])
 X_test = test_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 
                     'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
 y_test = test_data['PLUS_MINUS']
+
+y_test = y_test.dropna()
+
+# Verwijder de overeenkomstige rijen uit predictions
+predictions = predictions[:len(y_test)]
+
+# Controleer of de lengte van y_test en predictions gelijk is
+assert len(y_test) == len(predictions), "Lengte van y_test en predictions komt niet overeen"
 
 # Step 5: Initialize and train the RandomForestRegressor model
 model = RandomForestRegressor()
