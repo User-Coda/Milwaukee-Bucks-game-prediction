@@ -20,21 +20,25 @@ def predict_and_allocate_points(future_game_data, player_stats):
     home_team_id = future_game_data['HOME_TEAM_ID'].iloc[0]
     away_team_id = future_game_data['AWAY_TEAM_ID'].iloc[0]
     
-    # Get player IDs for players in the future game
-    home_player_ids = future_game_data['HOME_PLAYER_IDS']
-    away_player_ids = future_game_data['AWAY_PLAYER_IDS']
-    
-    # Convert player IDs to lists
-    home_player_ids = [int(player_id) for player_id in str(home_player_ids).split(',') if player_id.strip()]
-    away_player_ids = [int(float(player_id)) for player_id in str(away_player_ids).split(',') if player_id.strip()]
-    
+    # Convert player IDs to strings and split them
+    home_player_ids = future_game_data['HOME_PLAYER_IDS'].astype(str).str.split('\n')
+    away_player_ids = future_game_data['AWAY_PLAYER_IDS'].astype(str).str.split('\n')
+
+    # Extract player IDs from the lists and convert to integers
+    home_player_ids = [int(player_id) for sublist in home_player_ids for player_id in sublist if player_id.strip()]
+    away_player_ids = [int(player_id) for sublist in away_player_ids for player_id in sublist if player_id.strip()]
+
     # Get player statistics for players in the future game
     home_player_stats = player_stats[player_stats['PLAYER_ID'].isin(home_player_ids)]
     away_player_stats = player_stats[player_stats['PLAYER_ID'].isin(away_player_ids)]
     
-    # Calculate total points for each team
-    home_team_total_points = home_player_stats['PTS'].sum()
-    away_team_total_points = away_player_stats['PTS'].sum()
+    # Divide player scores by ten and round to nearest whole number
+    home_player_stats['PTS'] = round(home_player_stats['PTS'] / 10)
+    away_player_stats['PTS'] = round(away_player_stats['PTS'] / 10)
+    
+    # Calculate total points for each team and round to nearest whole number
+    home_team_total_points = round(home_player_stats['PTS'].sum())
+    away_team_total_points = round(away_player_stats['PTS'].sum())
     
     # Allocate points to home team players
     home_player_allocation = {}
@@ -42,7 +46,7 @@ def predict_and_allocate_points(future_game_data, player_stats):
         player_id = row['PLAYER_ID']
         player_points = row['PTS']
         allocation = min(player_points, home_team_total_points)
-        home_player_allocation[player_id] = allocation
+        home_player_allocation[player_id] = round(allocation)
     
     # Allocate points to away team players
     away_player_allocation = {}
@@ -50,10 +54,12 @@ def predict_and_allocate_points(future_game_data, player_stats):
         player_id = row['PLAYER_ID']
         player_points = row['PTS']
         allocation = min(player_points, away_team_total_points)
-        away_player_allocation[player_id] = allocation
+        away_player_allocation[player_id] = round(allocation)
     
     # Return total scores and allocated points for home and away teams
     return home_team_total_points, away_team_total_points, home_player_allocation, away_player_allocation
+
+
 
 # Load future games data from Excel file (replace 'Test.data.xlsx' with the actual file path)
 future_game_data = pd.read_excel('Test.data.xlsx')
