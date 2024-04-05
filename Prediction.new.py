@@ -1,57 +1,96 @@
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
 
-# Step 1: Load the historical game data
+# Load historical game data
 historical_data = pd.read_excel('Bucks Games.xlsx')
 
-# Step 2: Feature engineering and data preparation
+# Function to calculate player-level statistics based on away team's games against the home team
+def calculate_player_stats(data, home_team_id):
+    # Filter historical data for games where the away team played against the specified home team
+    away_team_games = data[data['TEAM_ID'] != home_team_id]
+    
+    # Calculate player-level statistics
+    player_stats = away_team_games.groupby('PLAYER_ID').agg({
+        'PTS': 'mean',  # Average points scored
+        # Add more statistics as needed
+    }).reset_index()
+    return player_stats
 
-# We need to select relevant features and preprocess the data.
-# For simplicity, let's assume we are interested in predicting the point difference (PLUS_MINUS) of the Milwaukee Bucks team.
+# Function to predict score for one future game and allocate points to players
+def predict_and_allocate_points(future_game_data, player_stats):
+    # Get team IDs for the home and away teams
+    home_team_id = future_game_data['HOME_TEAM_ID'].iloc[0]
+    away_team_id = future_game_data['AWAY_TEAM_ID'].iloc[0]
+    
+    # Convert player IDs to strings and split them
+    home_player_ids = future_game_data['HOME_PLAYER_IDS'].astype(str).str.split('\n')
+    away_player_ids = future_game_data['AWAY_PLAYER_IDS'].astype(str).str.split('\n')
 
-# Filter data for Milwaukee Bucks (MIL) team
-milwaukee_data = historical_data[historical_data['TEAM_ABBREVIATION'].str.strip() == 'MIL']
+    # Extract player IDs from the lists and convert to integers
+    home_player_ids = [int(player_id) for sublist in home_player_ids for player_id in sublist if player_id.strip()]
+    away_player_ids = [int(player_id) for sublist in away_player_ids for player_id in sublist if player_id.strip()]
+    
+    print("Home Player IDs:", home_player_ids)  # Debugging statement
+    print("Away Player IDs:", away_player_ids)  # Debugging statement
 
-# Group by 'GAME_ID' and sum the points for Milwaukee Bucks
-milwaukee_scores = milwaukee_data.groupby('GAME_ID')['PTS'].sum().reset_index()
+    # Get player statistics for players in the future game
+    home_player_stats = player_stats[player_stats['PLAYER_ID'].isin(home_player_ids)]
+    away_player_stats = player_stats[player_stats['PLAYER_ID'].isin(away_player_ids)]
+    
+    # Divide player scores by ten and round to nearest whole number
+    home_player_stats['PTS'] = round(home_player_stats['PTS'] / 10)
+    away_player_stats['PTS'] = round(away_player_stats['PTS'] / 10)
+    
+    # Calculate total points for each team and round to nearest whole number
+    home_team_total_points = round(home_player_stats['PTS'].sum())
+    away_team_total_points = round(away_player_stats['PTS'].sum())
+    
+    # Allocate points to home team players
+    home_player_allocation = {}
+    for index, row in home_player_stats.iterrows():
+        player_id = row['PLAYER_ID']
+        player_points = row['PTS']
+        allocation = min(player_points, home_team_total_points)
+        home_player_allocation[player_id] = round(allocation)
+    
+    # Allocate points to away team players
+    away_player_allocation = {}
+    for index, row in away_player_stats.iterrows():
+        player_id = row['PLAYER_ID']
+        player_points = row['PTS']
+        allocation = min(player_points, away_team_total_points)
+        away_player_allocation[player_id] = round(allocation)
+    
+    # Load player and team data
+    player_data = pd.read_excel('Bucks Games.xlsx')
+    team_data = pd.read_excel('Bucks Games.xlsx')
 
-# Merge the total Milwaukee scores back to the original dataframe
-historical_data = pd.merge(historical_data, milwaukee_scores, how='left', on='GAME_ID', suffixes=('', '_MIL'))
+    # Filter player and team names
+    player_names = {row['PLAYER_ID']: row['PLAYER_NAME'] for _, row in player_data.iterrows() if row['PLAYER_ID'] in home_player_ids + away_player_ids}
+    team_names = {row['TEAM_ID']: row['TEAM_CITY'] for _, row in team_data.iterrows() if row['TEAM_ID'] in [home_team_id, away_team_id]}
 
-# Assuming 'PTS' represents the total points scored for the opponent
-historical_data['OPP_Score'] = historical_data['PTS'] - historical_data['PTS_MIL']
+    # Return total scores, team names, player names, and allocated points for home and away teams
+    return home_team_total_points, away_team_total_points, team_names[home_team_id], team_names[away_team_id], \
+           {player_names.get(player_id, "Unknown"): allocation for player_id, allocation in home_player_allocation.items()}, \
+           {player_names.get(player_id, "Unknown"): allocation for player_id, allocation in away_player_allocation.items()}
 
-# Step 3: Split the data into training and testing sets
-train_data, test_data = train_test_split(historical_data, test_size=0.2, random_state=42)
 
-# Verwijder rijen met NaN-waarden uit de trainingsgegevens
-train_data = train_data.dropna(subset=['PLUS_MINUS'])
+# Load future games data from Excel file (replace 'Test.data.xlsx' with the actual file path)
+future_game_data = pd.read_excel('Test.data.xlsx')
 
-# Step 4: Choose features (X) and labels (y) for training and testing
-X_train = train_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 
-                      'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
-y_train = train_data['PLUS_MINUS']
+# Predict scores for one future game and allocate points to players
+home_team_score, away_team_score, home_team_name, away_team_name, home_allocation, away_allocation = predict_and_allocate_points(future_game_data, calculate_player_stats(historical_data, future_game_data['HOME_TEAM_ID'].iloc[0]))
 
-test_data = test_data.dropna(subset=['PLUS_MINUS'])
-X_test = test_data[['FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 
-                    'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'PLUS_MINUS']]
-y_test = test_data['PLUS_MINUS']
+# Print predicted scores for the game
+print("\nPredicted Scores:")
+print(f"Home Team: {home_team_name}, Score: {home_team_score}")
+print(f"Away Team: {away_team_name}, Score: {away_team_score}")
 
-y_test = y_test.dropna()
+# Print allocated points for home team players
+print("\nHome Team Players and Their Allocated Points:")
+for player_name, allocation in home_allocation.items():
+    print(f"Player Name: {player_name}, Allocated Points: {allocation}")
 
-# Verwijder de overeenkomstige rijen uit predictions
-predictions = predictions[:len(y_test)]
-
-# Controleer of de lengte van y_test en predictions gelijk is
-assert len(y_test) == len(predictions), "Lengte van y_test en predictions komt niet overeen"
-
-# Step 5: Initialize and train the RandomForestRegressor model
-model = RandomForestRegressor()
-model.fit(X_train, y_train)
-
-# Step 6: Evaluate the model
-predictions = model.predict(X_test)
-mse = mean_squared_error(y_test, predictions)
-print(f'Mean Squared Error: {mse}')
+# Print allocated points for away team players
+print("\nAway Team Players and Their Allocated Points:")
+for player_name, allocation in away_allocation.items():
+    print(f"Player Name: {player_name}, Allocated Points: {allocation}")
