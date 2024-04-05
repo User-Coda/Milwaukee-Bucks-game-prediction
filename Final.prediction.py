@@ -56,28 +56,37 @@ def predict_and_allocate_points(future_game_data, player_stats):
         allocation = min(player_points, away_team_total_points)
         away_player_allocation[player_id] = round(allocation)
     
-    # Return total scores and allocated points for home and away teams
-    return home_team_total_points, away_team_total_points, home_player_allocation, away_player_allocation
+    # Load player and team data
+    player_data = pd.read_excel('Bucks Games.xlsx')
+    team_data = pd.read_excel('Bucks Games.xlsx')
 
+    # Filter player and team names
+    player_names = {row['PLAYER_ID']: row['PLAYER_NAME'] for _, row in player_data.iterrows() if row['PLAYER_ID'] in home_player_ids + away_player_ids}
+    team_names = {row['TEAM_ID']: row['TEAM_CITY'] for _, row in team_data.iterrows() if row['TEAM_ID'] in [home_team_id, away_team_id]}
+
+    # Return total scores, team names, player names, and allocated points for home and away teams
+    return home_team_total_points, away_team_total_points, team_names[home_team_id], team_names[away_team_id], \
+           {player_names.get(player_id, "Unknown"): allocation for player_id, allocation in home_player_allocation.items()}, \
+           {player_names.get(player_id, "Unknown"): allocation for player_id, allocation in away_player_allocation.items()}
 
 
 # Load future games data from Excel file (replace 'Test.data.xlsx' with the actual file path)
 future_game_data = pd.read_excel('Test.data.xlsx')
 
 # Predict scores for one future game and allocate points to players
-home_team_score, away_team_score, home_allocation, away_allocation = predict_and_allocate_points(future_game_data, player_statistics)
+home_team_score, away_team_score, home_team_name, away_team_name, home_allocation, away_allocation = predict_and_allocate_points(future_game_data, player_statistics)
 
 # Print predicted scores for the game
 print("\nPredicted Scores:")
-print(f"Home Team Score: {home_team_score}")
-print(f"Away Team Score: {away_team_score}")
+print(f"Home Team: {home_team_name}, Score: {home_team_score}")
+print(f"Away Team: {away_team_name}, Score: {away_team_score}")
 
 # Print allocated points for home team players
 print("\nHome Team Players and Their Allocated Points:")
-for player_id, allocation in home_allocation.items():
-    print(f"Player ID: {player_id}, Allocated Points: {allocation}")
+for player_name, allocation in home_allocation.items():
+    print(f"Player Name: {player_name}, Allocated Points: {allocation}")
 
 # Print allocated points for away team players
 print("\nAway Team Players and Their Allocated Points:")
-for player_id, allocation in away_allocation.items():
-    print(f"Player ID: {player_id}, Allocated Points: {allocation}")
+for player_name, allocation in away_allocation.items():
+    print(f"Player Name: {player_name}, Allocated Points: {allocation}")
